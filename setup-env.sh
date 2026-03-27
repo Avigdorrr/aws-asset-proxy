@@ -47,7 +47,7 @@ echo "[5/5] Deploying CloudFormation stack '$STACK_NAME'..."
 aws --region "$REGION" cloudformation deploy \
   --template-file infra/template.yaml \
   --stack-name $STACK_NAME \
-  --capabilities CAPABILITY_IAM \
+  --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides ImageUri=$FULL_IMAGE_URI \
   --no-fail-on-empty-changeset
 
