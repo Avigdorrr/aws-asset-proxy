@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: Serverless Asset Proxy Infrastructure
 
 Parameters:
+  ResourcePrefix:
+    Type: String
+    Default: asset-proxy
+    Description: Prefix required by IAM security boundaries
   ImageUri:
     Type: String
     Description: 'ECR image URI'
@@ -12,7 +16,7 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       # Uses !Sub (Substitute) to inject variables, bucket name has to be unique globally hence the account id
-      BucketName: !Sub "${AWS::StackName}-bucket-${AWS::AccountId}"
+      BucketName: !Sub "${ResourcePrefix}-${AWS::StackName}-bucket-${AWS::AccountId}"
       # Block public access to the bucket
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -20,9 +24,16 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
+  # not creating role name because of its a bad prctice by amazon docs
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
+      # Satisfies the "Condition" requirement (attaches the boundary)
+      PermissionsBoundary: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/CandidatePermissionsBoundary"
+      # grants the Lambda the ability to write logs to CloudWatch (if neeeded).
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole]
+      # Naming the role is required for the iam policy for my user. however, it is not a good practice by amazon docs
+      RoleName: !Sub "${ResourcePrefix}-${AWS::StackName}-${AWS::Region}-role"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -42,6 +53,7 @@ Resources:
   AssetProxyFunction:
     Type: AWS::Lambda::Function
     Properties:
+      FunctionName: !Sub "${ResourcePrefix}-${AWS::StackName}-${AWS::Region}-function"
       PackageType: Image
       Code:
         ImageUri: !Ref ImageUri
