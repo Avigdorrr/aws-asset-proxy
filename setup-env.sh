@@ -48,7 +48,8 @@ aws --region "$REGION" cloudformation deploy \
   --template-file infra/template.yaml \
   --stack-name $STACK_NAME \
   --capabilities CAPABILITY_IAM \
-  --parameter-overrides ImageUri=$FULL_IMAGE_URI
+  --parameter-overrides ImageUri=$FULL_IMAGE_URI \
+  --no-fail-on-empty-changeset
 
 echo "=== Setup complete! ==="
 echo "Future updates should be handled via GitHub Actions."
