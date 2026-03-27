@@ -39,7 +39,7 @@ aws ecr get-login-password --region "$REGION" | docker login --username AWS --pa
 
 # 4. Build specifically for the Lambda architecture (ARM64 for Graviton2) and push to ECR
 echo "[4/5] Building and pushing Docker image for ARM64 architecture..."
-docker build --platform linux/arm64 -t "$FULL_IMAGE_URI" ./app
+docker build -t "$FULL_IMAGE_URI" ./app
 docker push "$FULL_IMAGE_URI"
 
 # 5. Deploy CloudFormation
