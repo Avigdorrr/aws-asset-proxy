@@ -107,6 +107,7 @@ Resources:
       Action: lambda:InvokeFunctionUrl
       FunctionName: !Ref AssetProxyFunction
       Principal: cloudfront.amazonaws.com
+      FunctionUrlAuthType: AWS_IAM
       SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${AssetProxyDistribution}"
 
 Outputs:
