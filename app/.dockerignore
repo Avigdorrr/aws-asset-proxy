@@ -1,0 +1,29 @@
+# Ignore git files
+.git/
+.gitignore
+
+# Go local artifacts
+vendor/
+*.test
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Ignore local binaries
+bootstrap
+aws-asset-proxy
+
+# AWS SAM artifacts
+.aws-sam/
+*.aws-sam/
+template.yaml
+samconfig.toml
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~

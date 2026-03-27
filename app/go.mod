@@ -1,4 +1,4 @@
-module github.com/devops-secops-task
+module github.com/guyavigdor/aws-asset-proxy
 
 go 1.22.0
 
