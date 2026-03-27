@@ -100,14 +100,23 @@ Resources:
           # Using standard AWS Managed Cache Policy ID (CachingOptimized)
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
 
-  # Lambda Permission for CloudFront
-  LambdaInvokePermission:
+  # Lambda FunctionUrl Permission for CloudFront
+  LambdaInvokeUrlPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunctionUrl
       FunctionName: !Ref AssetProxyFunction
       Principal: cloudfront.amazonaws.com
       FunctionUrlAuthType: AWS_IAM
+      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${AssetProxyDistribution}"
+
+  # Lambda Function Permission for CloudFront. (Required since october 2025 changes see: https://docs.aws.amazon.com/lambda/latest/dg/urls-auth.html)
+  LambdaInvokeFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AssetProxyFunction
+      Principal: cloudfront.amazonaws.com
       SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${AssetProxyDistribution}"
 
 Outputs:
