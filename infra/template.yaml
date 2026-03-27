@@ -30,7 +30,7 @@ Resources:
     Properties:
       # Satisfies the "Condition" requirement (attaches the boundary)
       PermissionsBoundary: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/CandidatePermissionsBoundary"
-      # grants the Lambda the ability to write logs to CloudWatch (if neeeded).
+      # grants the Lambda the ability to write logs to CloudWatch.
       ManagedPolicyArns: [arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole]
       # Naming the role is required for the iam policy for my user. however, it is not a good practice by amazon docs
       RoleName: !Sub "${ResourcePrefix}-${AWS::StackName}-${AWS::Region}-role"
