@@ -46,7 +46,7 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              - Sid: CloudFormationAccess
+              - Sid: CloudFormationStackAccess
                 Effect: Allow
                 Action:
                   - cloudformation:CreateStack
@@ -57,6 +57,10 @@ Resources:
                   - cloudformation:ExecuteChangeSet
                   - cloudformation:DescribeChangeSet
                   - cloudformation:DeleteChangeSet
+                Resource: !Sub "arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/asset-proxy-*/*"
+              - Sid: CloudFormationGlobalAccess
+                Effect: Allow
+                Action:
                   - cloudformation:GetTemplateSummary
                 Resource: '*'
               - Sid: S3Access
@@ -113,10 +117,14 @@ Resources:
                   - cloudfront:GetOriginAccessControl
                   - cloudfront:GetOriginAccessControlConfig
                 Resource: '*'
-              - Sid: ECRAccess
+              - Sid: ECRAuthAccess
                 Effect: Allow
                 Action:
                   - ecr:GetAuthorizationToken
+                Resource: '*'
+              - Sid: ECRRepoAccess
+                Effect: Allow
+                Action:
                   - ecr:BatchCheckLayerAvailability
                   - ecr:GetDownloadUrlForLayer
                   - ecr:BatchGetImage
@@ -124,7 +132,7 @@ Resources:
                   - ecr:UploadLayerPart
                   - ecr:CompleteLayerUpload
                   - ecr:PutImage
-                Resource: '*'
+                Resource: !Sub "arn:${AWS::Partition}:ecr:${AWS::Region}:${AWS::AccountId}:repository/asset-proxy"
 
 Outputs:
   GitHubActionsRoleArn:

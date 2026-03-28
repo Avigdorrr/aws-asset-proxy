@@ -42,18 +42,14 @@ FULL_IMAGE_URI="$ECR_URI/$ECR_REPOSITORY:$IMAGE_TAG"
 echo "      Account ID: $ACCOUNT_ID"
 echo "      Image URI:  $FULL_IMAGE_URI"
 
-# 3. Ensure ECR exists and make it immutable
-echo "[3/6] Ensuring ECR repository '$ECR_REPOSITORY' exists and is immutable..."
-MUTABILITY=$(aws ecr describe-repositories --repository-names "$ECR_REPOSITORY" --region "$AWS_REGION" --query "repositories[0].imageTagMutability" --output text 2>/dev/null || echo "NOT_FOUND")
+# 3. Ensure ECR exists
+echo "[3/6] Ensuring ECR repository '$ECR_REPOSITORY' exists..."
 
-if [ "$MUTABILITY" == "NOT_FOUND" ]; then
-    echo "      Repository not found. Creating new repository and enforcing IMMUTABLE tags..."
-    aws ecr create-repository --repository-name "$ECR_REPOSITORY" --region "$AWS_REGION" --image-tag-mutability IMMUTABLE > /dev/null
-elif [ "$MUTABILITY" != "IMMUTABLE" ]; then
-    echo "      Repository exists but allows overwrites. Enforcing IMMUTABLE tags..."
-    aws ecr put-image-tag-mutability --repository-name "$ECR_REPOSITORY" --region "$AWS_REGION" --image-tag-mutability IMMUTABLE > /dev/null
+if ! aws ecr describe-repositories --repository-names "$ECR_REPOSITORY" --region "$AWS_REGION" > /dev/null 2>&1; then
+    echo "      Repository not found. Creating new repository..."
+    aws ecr create-repository --repository-name "$ECR_REPOSITORY" --region "$AWS_REGION" > /dev/null
 else
-    echo "      Repository exists and is correctly configured with IMMUTABLE tags."
+    echo "      Repository already exists."
 fi
 
 # 4. Authenticate Docker to ECR
