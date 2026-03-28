@@ -1,4 +1,4 @@
-module github.com/guyavigdor/aws-asset-proxy
+module github.com/guyavigdor/aws-asset-proxy/app
 
 go 1.22.0
 
