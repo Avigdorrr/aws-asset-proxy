@@ -1,0 +1,93 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  # Allow manual triggering if needed
+  workflow_dispatch:
+
+
+permissions:
+  id-token: write   # Required for requesting the JWT for OIDC
+  contents: read    # Required for actions/checkout
+
+jobs:
+  build:
+    name: Build, Test, and Push
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Load Environment Variables
+        run: cat config.env >> $GITHUB_ENV
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'app/go.mod'
+
+      - name: Test Go Application
+        working-directory: ./app
+        run: go test -v ./...
+
+      - name: Configure AWS Credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get Short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          push: true
+          platforms: linux/arm64
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.sha_short }}
+
+      - name: Set Image URI Output
+        id: build-image
+        run: echo "image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.sha_short }}" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: Deploy to AWS CloudFormation
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Load Environment Variables
+        run: cat config.env >> $GITHUB_ENV
+
+      - name: Configure AWS Credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy CloudFormation Stack
+        env:
+          IMAGE_URI: ${{ needs.build.outputs.image }}
+        run: |
+          aws cloudformation deploy \
+            --template-file infra/app.yaml \
+            --stack-name ${{ env.STACK_NAME }} \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides ImageUri=$IMAGE_URI \
+            --no-fail-on-empty-changeset \
+            --region ${{ env.AWS_REGION }}

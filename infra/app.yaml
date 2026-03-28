@@ -1,0 +1,129 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Serverless Asset Proxy Infrastructure
+
+Parameters:
+  ResourcePrefix:
+    Type: String
+    Default: asset-proxy
+    Description: Prefix required by IAM security boundaries
+  ImageUri:
+    Type: String
+    Description: 'ECR image URI'
+
+Resources:
+
+  AssetBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      # Uses !Sub (Substitute) to inject variables, bucket name has to be unique globally hence the account id
+      BucketName: !Sub "${ResourcePrefix}-${AWS::StackName}-bucket-${AWS::AccountId}"
+      # Block public access to the bucket
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # not creating role name because of its a bad prctice by amazon docs
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      # Satisfies the "Condition" requirement (attaches the boundary)
+      PermissionsBoundary: !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/CandidatePermissionsBoundary"
+      # grants the Lambda the ability to write logs to CloudWatch.
+      ManagedPolicyArns: [arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole]
+      # Naming the role is required for the iam policy for my user. however, it is not a good practice by amazon docs
+      RoleName: !Sub "${ResourcePrefix}-${AWS::StackName}-${AWS::Region}-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3AssetReadAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${AssetBucket}/*"
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${AssetBucket}"
+
+  AssetProxyFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ResourcePrefix}-${AWS::StackName}-${AWS::Region}-function"
+      PackageType: Image
+      Code:
+        ImageUri: !Ref ImageUri
+      Architectures:
+        - arm64
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 10
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref AssetBucket
+
+  AssetProxyFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      AuthType: AWS_IAM
+      TargetFunctionArn: !Ref AssetProxyFunction
+
+  # CloudFront OAC (Origin Access Control) for Lambda
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-OAC"
+        OriginAccessControlOriginType: lambda
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  AssetProxyDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Origins:
+          - Id: LambdaOrigin
+            DomainName: !Select [2, !Split ["/", !GetAtt AssetProxyFunctionUrl.FunctionUrl]]
+            CustomOriginConfig:
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
+            OriginAccessControlId: !GetAtt CloudFrontOAC.Id
+        DefaultCacheBehavior:
+          TargetOriginId: LambdaOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          # Using standard AWS Managed Cache Policy ID (CachingOptimized)
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+
+  # Lambda FunctionUrl Permission for CloudFront
+  LambdaInvokeUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunctionUrl
+      FunctionName: !Ref AssetProxyFunction
+      Principal: cloudfront.amazonaws.com
+      FunctionUrlAuthType: AWS_IAM
+      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${AssetProxyDistribution}"
+
+  # Lambda Function Permission for CloudFront. (Required since october 2025 changes see: https://docs.aws.amazon.com/lambda/latest/dg/urls-auth.html)
+  LambdaInvokeFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AssetProxyFunction
+      Principal: cloudfront.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${AssetProxyDistribution}"
+
+Outputs:
+  CloudFrontUrl:
+    Value: !Sub "https://${AssetProxyDistribution.DomainName}"
+  S3BucketName:
+    Value: !Ref AssetBucket
