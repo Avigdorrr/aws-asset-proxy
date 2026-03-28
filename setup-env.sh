@@ -30,7 +30,7 @@ aws --region "$AWS_REGION" cloudformation deploy \
 AWS_ROLE_ARN=$(aws cloudformation describe-stacks --region "$AWS_REGION" --stack-name "$OIDC_STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='GitHubActionsRoleArn'].OutputValue" --output text)
 echo "      Output - GitHubActionsRoleArn: $AWS_ROLE_ARN"
 
-# For the very first manual deploy, we use a 'bootstrap' tag
+# For the very first manual deploy, we use a 'bootstrap' tag with a timestamp
 IMAGE_TAG="bootstrap-$(date +%s)"
 
 # 2. Get the URIs dynamically
@@ -72,9 +72,9 @@ aws --region "$AWS_REGION" cloudformation deploy \
 
 echo "=== Setup complete! ==="
 echo ""
-echo "ACTION REQUIRED: Configure GitHub Actions variables/secrets"
+echo "ACTION REQUIRED: Configure GitHub Actions variables"
 echo "--------------------------------------------------------"
-echo "Please add the following secret to your GitHub Repository ($GITHUB_ORG/$GITHUB_REPO):"
+echo "Please add the following variable to your GitHub Repository ($GITHUB_ORG/$GITHUB_REPO):"
 echo "  Name:  AWS_ROLE_ARN"
 echo "  Value: $AWS_ROLE_ARN"
 echo ""

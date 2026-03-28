@@ -14,7 +14,6 @@ Parameters:
     Description: Prefix required by IAM security boundaries
 
 Resources:
-  # 1. The OIDC Provider 
   GitHubOIDCProvider:
     Type: AWS::IAM::OIDCProvider
     Properties:
@@ -22,7 +21,6 @@ Resources:
       ClientIdList:
         - sts.amazonaws.com
 
-  # 2. The Deployment Role 
   GitHubActionsRole:
     Type: AWS::IAM::Role
     Properties:

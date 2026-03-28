@@ -16,9 +16,6 @@ jobs:
   build:
     name: Build, Test, and Push
     runs-on: ubuntu-latest
-    env:
-      AWS_REGION: ""     # Satisfies IDE linter for 'with:' blocks
-      ECR_REPOSITORY: "" # Satisfies IDE linter for 'with:' blocks
     outputs:
       image: ${{ steps.build-image.outputs.image }}
     steps:
