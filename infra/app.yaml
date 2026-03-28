@@ -49,6 +49,9 @@ Resources:
               - Effect: Allow
                 Action: s3:GetObject
                 Resource: !Sub "arn:${AWS::Partition}:s3:::${AssetBucket}/*"
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub "arn:${AWS::Partition}:s3:::${AssetBucket}"
 
   AssetProxyFunction:
     Type: AWS::Lambda::Function

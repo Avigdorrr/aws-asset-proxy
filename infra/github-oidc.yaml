@@ -38,7 +38,7 @@ Resources:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
               StringLike:
-                # Locks the role down to ONLY your specific repository
+                # Locks the role down to ONLY a specific repository
                 token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${GitHubRepo}:*
       
       Policies:
