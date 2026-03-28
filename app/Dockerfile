@@ -6,9 +6,9 @@ RUN go mod download
 COPY . .
 # Build the binary targeting linux/arm64 (Graviton2).
 # Using -tags lambda.norpc builds the binary for the provided.al2023 runtime (HTTP based) and creates a smaller binary.
-RUN GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -tags lambda.norpc -o asset-proxy ./cmd/proxy/main.go
+RUN GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -tags lambda.norpc -o proxy ./cmd/proxy/main.go
 
 # Stage 2: AWS Lambda Runtime
 FROM --platform=linux/arm64 public.ecr.aws/lambda/provided:al2023
-COPY --from=builder /app/asset-proxy ./asset-proxy
-ENTRYPOINT [ "./asset-proxy" ]
+COPY --from=builder /app/proxy ./proxy
+ENTRYPOINT [ "./proxy" ]
