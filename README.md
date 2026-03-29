@@ -89,7 +89,7 @@ aws-asset-proxy/
 ## Prerequisites
 
 - **AWS CLI** configured with credentials that have permissions to deploy CloudFormation stacks
-- **Docker** with [Buildx](https://docs.docker.com/buildx/working-with-buildx/) enabled (for cross-platform ARM64 builds)
+- **Docker** with [Buildx](https://docs.docker.com/reference/cli/docker/buildx/) enabled (used by the bootstrap script for local ARM64 builds; not needed for CI/CD — GitHub Actions handles Docker builds independently)
 - **Go 1.22+** (for local development and testing)
 - A **GitHub repository** to host the code and run Actions
 
@@ -193,14 +193,16 @@ curl https://<distribution-domain>.cloudfront.net/test-image.png
 
 ### Application Stack (`infra/app.yaml`)
 
-| Resource                  | Type                              | Purpose                                                          |
-| ------------------------- | --------------------------------- | ---------------------------------------------------------------- |
-| `AssetBucket`             | S3 Bucket                         | Stores the assets to be served                                   |
-| `LambdaExecutionRole`     | IAM Role                          | Grants the Lambda `s3:GetObject` and `s3:ListBucket` permissions |
-| `AssetProxyFunction`      | Lambda Function                   | Go binary running on ARM64 (`provided.al2023`)                   |
-| `AssetProxyFunctionUrl`   | Lambda Function URL               | HTTP(S) endpoint for the Lambda (AuthType: AWS_IAM)              |
-| `CloudFrontOAC`           | CloudFront Origin Access Control  | Signs requests to Lambda with SigV4                              |
-| `AssetProxyDistribution`  | CloudFront Distribution           | Edge-cached CDN in front of the Lambda                           |
+| Resource                          | Type                              | Purpose                                                          |
+| --------------------------------- | --------------------------------- | ---------------------------------------------------------------- |
+| `AssetBucket`                     | S3 Bucket                         | Stores the assets to be served                                   |
+| `LambdaExecutionRole`             | IAM Role                          | Grants the Lambda `s3:GetObject` and `s3:ListBucket` permissions |
+| `AssetProxyFunction`              | Lambda Function                   | Go binary running on ARM64 (`provided.al2023`)                   |
+| `AssetProxyFunctionUrl`           | Lambda Function URL               | HTTP(S) endpoint for the Lambda (AuthType: AWS_IAM)              |
+| `CloudFrontOAC`                   | CloudFront Origin Access Control  | Signs requests to Lambda with SigV4                              |
+| `AssetProxyDistribution`          | CloudFront Distribution           | Edge-cached CDN in front of the Lambda                           |
+| `LambdaInvokeUrlPermission`       | Lambda Permission                 | Allows CloudFront to invoke the Lambda Function URL              |
+| `LambdaInvokeFunctionPermission`  | Lambda Permission                 | Allows CloudFront to invoke the Lambda Function directly         |
 
 ### OIDC Stack (`infra/github-oidc.yaml`)
 
